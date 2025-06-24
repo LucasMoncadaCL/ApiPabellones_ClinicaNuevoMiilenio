@@ -2,6 +2,7 @@ package com.clinicanuevomilenio.pabellones.models;
 
 import jakarta.persistence.*;
 import lombok.Data;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -48,7 +49,7 @@ public class Pabellon {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "TIPO_PABELLON_id_tipo_pabellon", nullable = false)
-    private TipoPabellon tipoPabellon;
+    private TipoPabellon tipo;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "SEDE_id_sede", nullable = false)

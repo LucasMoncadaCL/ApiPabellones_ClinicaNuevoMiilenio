@@ -84,4 +84,19 @@ public class PabellonController {
                     .body(Map.of("error", "No se pudo subir el archivo: " + e.getMessage()));
         }
     }
+
+    @GetMapping("/estado")
+    public ResponseEntity<List<PabellonRespuestaDTO>> obtenerPabellonesPorEstado(
+            @RequestParam Integer estadoId) {
+        List<PabellonRespuestaDTO> filtrados = pabellonService.obtenerPabellonesPorEstado(estadoId);
+        return ResponseEntity.ok(filtrados);
+    }
+
+    @GetMapping("/filtro")
+    public ResponseEntity<List<PabellonRespuestaDTO>> obtenerPorEstadoYTipo(
+            @RequestParam Integer estadoId,
+            @RequestParam Integer tipoId) {
+        List<PabellonRespuestaDTO> resultados = pabellonService.obtenerPabellonesPorEstadoYTipo(estadoId, tipoId);
+        return ResponseEntity.ok(resultados);
+    }
 }

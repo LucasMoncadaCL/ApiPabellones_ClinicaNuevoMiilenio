@@ -10,8 +10,4 @@ import java.util.Optional;
 @Repository
 public interface PabellonImagenRepository extends JpaRepository<PabellonImagen, Integer> {
     Optional<PabellonImagen> findByPabellonIdAndEsPrincipal(Integer pabellonId, int esPrincipal);
-
-@Repository
-public interface PabellonImagenRepository extends JpaRepository<PabellonImagen, Integer> {
-
 }

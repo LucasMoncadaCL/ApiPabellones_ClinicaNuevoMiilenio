@@ -7,7 +7,6 @@ import lombok.Data;
 @Table(name = "tipo_pabellon")
 @Data
 public class TipoPabellon {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_tipo_pabellon")
@@ -15,7 +14,4 @@ public class TipoPabellon {
 
     @Column(name = "nombre", nullable = false, length = 50)
     private String nombre;
-
-    @Column(name = "descripcion", length = 200)
-    private String descripcion;
 }
