@@ -1,14 +1,28 @@
 package com.clinicanuevomilenio.pabellones.services;
 
 import com.clinicanuevomilenio.pabellones.dto.*;
+
 import com.clinicanuevomilenio.pabellones.models.*;
 import com.clinicanuevomilenio.pabellones.repository.*;
+
+import com.clinicanuevomilenio.pabellones.models.EstadoPabellon;
+import com.clinicanuevomilenio.pabellones.models.Pabellon;
+import com.clinicanuevomilenio.pabellones.models.Sede;
+import com.clinicanuevomilenio.pabellones.models.TipoPabellon;
+import com.clinicanuevomilenio.pabellones.repository.EstadoPabellonRepository;
+import com.clinicanuevomilenio.pabellones.repository.PabellonRepository;
+import com.clinicanuevomilenio.pabellones.repository.SedeRepository;
+import com.clinicanuevomilenio.pabellones.repository.TipoPabellonRepository;
+
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import org.springframework.web.multipart.MultipartFile;
+
+
 
 import java.time.LocalDate;
 import java.util.Collections;
@@ -27,10 +41,13 @@ public class PabellonService {
     private TipoPabellonRepository tipoPabellonRepository;
     @Autowired
     private EstadoPabellonRepository estadoPabellonRepository;
+
     @Autowired
     private FileSystemStorageService storageService;
     @Autowired
     private PabellonImagenRepository pabellonImagenRepository;
+
+
 
     @Transactional
     public PabellonRespuestaDTO crearPabellon(PabellonCreacionDTO dto) {
@@ -87,6 +104,7 @@ public class PabellonService {
                 .collect(Collectors.toList());
     }
 
+
     @Transactional
     public void agregarImagenAPabellon(Integer pabellonId, MultipartFile archivoImagen, boolean esPrincipal) {
         // si la nueva imagen se va a establecer como principal
@@ -117,6 +135,8 @@ public class PabellonService {
 
         pabellonImagenRepository.save(nuevaImagen);
     }
+
+
 
     /**
      * Convertir entidad Pabellon a su DTO de respuesta, manejando las conversiones de las entidades anidadas.
