@@ -1,6 +1,10 @@
 package com.clinicanuevomilenio.pabellones.services;
 
 import com.clinicanuevomilenio.pabellones.dto.*;
+
+import com.clinicanuevomilenio.pabellones.models.*;
+import com.clinicanuevomilenio.pabellones.repository.*;
+
 import com.clinicanuevomilenio.pabellones.models.EstadoPabellon;
 import com.clinicanuevomilenio.pabellones.models.Pabellon;
 import com.clinicanuevomilenio.pabellones.models.Sede;
@@ -9,11 +13,16 @@ import com.clinicanuevomilenio.pabellones.repository.EstadoPabellonRepository;
 import com.clinicanuevomilenio.pabellones.repository.PabellonRepository;
 import com.clinicanuevomilenio.pabellones.repository.SedeRepository;
 import com.clinicanuevomilenio.pabellones.repository.TipoPabellonRepository;
+
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import org.springframework.web.multipart.MultipartFile;
+
+
 
 import java.time.LocalDate;
 import java.util.Collections;
@@ -32,6 +41,13 @@ public class PabellonService {
     private TipoPabellonRepository tipoPabellonRepository;
     @Autowired
     private EstadoPabellonRepository estadoPabellonRepository;
+
+    @Autowired
+    private FileSystemStorageService storageService;
+    @Autowired
+    private PabellonImagenRepository pabellonImagenRepository;
+
+
 
     @Transactional
     public PabellonRespuestaDTO crearPabellon(PabellonCreacionDTO dto) {
@@ -87,6 +103,40 @@ public class PabellonService {
                 .map(this::convertirARespuestaDTO)
                 .collect(Collectors.toList());
     }
+
+
+    @Transactional
+    public void agregarImagenAPabellon(Integer pabellonId, MultipartFile archivoImagen, boolean esPrincipal) {
+        // si la nueva imagen se va a establecer como principal
+        if (esPrincipal) {
+            //si ya existe otra imagen principal para este pabellón
+            pabellonImagenRepository.findByPabellonIdAndEsPrincipal(pabellonId, 1)
+                    .ifPresent(imagenPrincipalAnterior -> {
+                        // Si la encontramos, le quitamos el flag de principal
+                        imagenPrincipalAnterior.setEsPrincipal(0);
+                        pabellonImagenRepository.save(imagenPrincipalAnterior);
+                    });
+        }
+
+        String nombreArchivoUnico = storageService.store(archivoImagen);
+
+        Pabellon pabellon = pabellonRepository.findById(pabellonId)
+                .orElseThrow(() -> new EntityNotFoundException("Pabellón no encontrado con ID: " + pabellonId));
+
+        PabellonImagen nuevaImagen = new PabellonImagen();
+        nuevaImagen.setPabellon(pabellon);
+        nuevaImagen.setRutaArchivo(nombreArchivoUnico);
+        nuevaImagen.setNombreArchivo(archivoImagen.getOriginalFilename());
+        nuevaImagen.setTipoMime(archivoImagen.getContentType());
+        nuevaImagen.setTamanoBytes((int) archivoImagen.getSize());
+        nuevaImagen.setFechaSubida(LocalDate.now());
+
+        nuevaImagen.setEsPrincipal(esPrincipal ? 1 : 0);
+
+        pabellonImagenRepository.save(nuevaImagen);
+    }
+
+
 
     /**
      * Convertir entidad Pabellon a su DTO de respuesta, manejando las conversiones de las entidades anidadas.
