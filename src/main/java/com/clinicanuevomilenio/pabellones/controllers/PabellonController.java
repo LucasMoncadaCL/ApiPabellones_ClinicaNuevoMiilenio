@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -59,5 +60,27 @@ public class PabellonController {
     public ResponseEntity<List<PabellonRespuestaDTO>> listarPabellones() {
         List<PabellonRespuestaDTO> pabellones = pabellonService.listarPabellones();
         return ResponseEntity.ok(pabellones);
+    }
+
+    @PostMapping("/{pabellonId}/imagenes")
+    public ResponseEntity<?> subirImagen(
+            @PathVariable Integer pabellonId,
+            @RequestParam("file") MultipartFile archivo,
+            // @RequestParam. opcional, su valor por defecto es false
+            @RequestParam(name = "esPrincipal", required = false, defaultValue = "false") boolean esPrincipal) {
+
+        if (archivo.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Por favor, seleccione un archivo para subir."));
+        }
+
+        try {
+            pabellonService.agregarImagenAPabellon(pabellonId, archivo, esPrincipal);
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("mensaje", "Archivo subido y asociado con éxito."));
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "No se pudo subir el archivo: " + e.getMessage()));
+        }
     }
 }
