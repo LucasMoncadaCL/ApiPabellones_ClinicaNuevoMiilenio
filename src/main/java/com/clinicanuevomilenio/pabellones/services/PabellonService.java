@@ -1,28 +1,15 @@
 package com.clinicanuevomilenio.pabellones.services;
 
 import com.clinicanuevomilenio.pabellones.dto.*;
-
 import com.clinicanuevomilenio.pabellones.models.*;
 import com.clinicanuevomilenio.pabellones.repository.*;
-
-import com.clinicanuevomilenio.pabellones.models.EstadoPabellon;
-import com.clinicanuevomilenio.pabellones.models.Pabellon;
-import com.clinicanuevomilenio.pabellones.models.Sede;
-import com.clinicanuevomilenio.pabellones.models.TipoPabellon;
-import com.clinicanuevomilenio.pabellones.repository.EstadoPabellonRepository;
-import com.clinicanuevomilenio.pabellones.repository.PabellonRepository;
-import com.clinicanuevomilenio.pabellones.repository.SedeRepository;
-import com.clinicanuevomilenio.pabellones.repository.TipoPabellonRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import org.springframework.web.multipart.MultipartFile;
-
-
 
 import java.time.LocalDate;
 import java.util.Collections;
@@ -33,28 +20,19 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PabellonService {
 
-    @Autowired
-    private PabellonRepository pabellonRepository;
-    @Autowired
-    private SedeRepository sedeRepository;
-    @Autowired
-    private TipoPabellonRepository tipoPabellonRepository;
-    @Autowired
-    private EstadoPabellonRepository estadoPabellonRepository;
-
-    @Autowired
-    private FileSystemStorageService storageService;
-    @Autowired
-    private PabellonImagenRepository pabellonImagenRepository;
-
-
+    @Autowired private PabellonRepository pabellonRepository;
+    @Autowired private SedeRepository sedeRepository;
+    @Autowired private TipoPabellonRepository tipoPabellonRepository;
+    @Autowired private EstadoPabellonRepository estadoPabellonRepository;
+    @Autowired private FileSystemStorageService storageService;
+    @Autowired private PabellonImagenRepository pabellonImagenRepository;
 
     @Transactional
     public PabellonRespuestaDTO crearPabellon(PabellonCreacionDTO dto) {
         Sede sede = sedeRepository.findById(dto.getSedeId())
                 .orElseThrow(() -> new EntityNotFoundException("Sede no encontrada con ID: " + dto.getSedeId()));
 
-        TipoPabellon tipoPabellon = tipoPabellonRepository.findById(dto.getTipoPabellonId())
+        TipoPabellon tipo = tipoPabellonRepository.findById(dto.getTipoPabellonId())
                 .orElseThrow(() -> new EntityNotFoundException("Tipo de Pabellón no encontrado con ID: " + dto.getTipoPabellonId()));
 
         EstadoPabellon estado = estadoPabellonRepository.findById(dto.getEstadoId())
@@ -72,7 +50,7 @@ public class PabellonService {
         nuevoPabellon.setFechaActualizacion(LocalDate.now());
 
         nuevoPabellon.setSede(sede);
-        nuevoPabellon.setTipoPabellon(tipoPabellon);
+        nuevoPabellon.setTipo(tipo);
         nuevoPabellon.setEstado(estado);
 
         Pabellon pabellonGuardado = pabellonRepository.save(nuevoPabellon);
@@ -80,11 +58,6 @@ public class PabellonService {
         return convertirARespuestaDTO(pabellonGuardado);
     }
 
-    /**
-     * Busca un pabellón por su ID.
-     * @param id El ID del pabellón a buscar.
-     * @return El DTO del pabellón encontrado.
-     */
     @Transactional(readOnly = true)
     public PabellonRespuestaDTO buscarPabellonPorId(Integer id) {
         Pabellon pabellon = pabellonRepository.findById(id)
@@ -92,29 +65,20 @@ public class PabellonService {
         return convertirARespuestaDTO(pabellon);
     }
 
-    /**
-     * Devuelve una lista de todos los pabellones.
-     * @return Lista de DTOs de pabellones.
-     */
     @Transactional(readOnly = true)
     public List<PabellonRespuestaDTO> listarPabellones() {
-        return pabellonRepository.findAll()
-                .stream()
+        return pabellonRepository.findAll().stream()
                 .map(this::convertirARespuestaDTO)
                 .collect(Collectors.toList());
     }
 
-
     @Transactional
     public void agregarImagenAPabellon(Integer pabellonId, MultipartFile archivoImagen, boolean esPrincipal) {
-        // si la nueva imagen se va a establecer como principal
         if (esPrincipal) {
-            //si ya existe otra imagen principal para este pabellón
             pabellonImagenRepository.findByPabellonIdAndEsPrincipal(pabellonId, 1)
-                    .ifPresent(imagenPrincipalAnterior -> {
-                        // Si la encontramos, le quitamos el flag de principal
-                        imagenPrincipalAnterior.setEsPrincipal(0);
-                        pabellonImagenRepository.save(imagenPrincipalAnterior);
+                    .ifPresent(imagenAnterior -> {
+                        imagenAnterior.setEsPrincipal(0);
+                        pabellonImagenRepository.save(imagenAnterior);
                     });
         }
 
@@ -130,36 +94,28 @@ public class PabellonService {
         nuevaImagen.setTipoMime(archivoImagen.getContentType());
         nuevaImagen.setTamanoBytes((int) archivoImagen.getSize());
         nuevaImagen.setFechaSubida(LocalDate.now());
-
         nuevaImagen.setEsPrincipal(esPrincipal ? 1 : 0);
 
         pabellonImagenRepository.save(nuevaImagen);
     }
 
-
-
-    /**
-     * Convertir entidad Pabellon a su DTO de respuesta, manejando las conversiones de las entidades anidadas.
-     * @param pabellon La entidad a convertir.
-     * @return El DTO de respuesta completo y enriquecido.
-     */
     private PabellonRespuestaDTO convertirARespuestaDTO(Pabellon pabellon) {
         List<PabellonImagenDTO> imagenesDTO = pabellon.getImagenes() != null ?
                 pabellon.getImagenes().stream().map(img -> {
-                    PabellonImagenDTO imgDto = new PabellonImagenDTO();
-                    imgDto.setId(img.getId());
-                    imgDto.setRutaArchivo(img.getRutaArchivo());
-                    imgDto.setEsPrincipal(img.getEsPrincipal());
-                    return imgDto;
+                    PabellonImagenDTO dto = new PabellonImagenDTO();
+                    dto.setId(img.getId());
+                    dto.setRutaArchivo(img.getRutaArchivo());
+                    dto.setEsPrincipal(img.getEsPrincipal());
+                    return dto;
                 }).collect(Collectors.toList()) : Collections.emptyList();
 
         EstadoPabellonDTO estadoDTO = new EstadoPabellonDTO();
         estadoDTO.setId(pabellon.getEstado().getId());
         estadoDTO.setNombre(pabellon.getEstado().getNombre());
 
-        TipoPabellonDTO tipoPabellonDTO = new TipoPabellonDTO();
-        tipoPabellonDTO.setId(pabellon.getTipoPabellon().getId());
-        tipoPabellonDTO.setNombre(pabellon.getTipoPabellon().getNombre());
+        TipoPabellonDTO tipoDTO = new TipoPabellonDTO();
+        tipoDTO.setId(pabellon.getTipo().getId());
+        tipoDTO.setNombre(pabellon.getTipo().getNombre());
 
         ProvinciaDTO provinciaDTO = new ProvinciaDTO();
         provinciaDTO.setIdProvincia(pabellon.getSede().getComuna().getProvincia().getIdProvincia());
@@ -175,7 +131,6 @@ public class PabellonService {
         sedeDTO.setNombre(pabellon.getSede().getNombre());
         sedeDTO.setComuna(comunaDTO);
 
-        // Construcción del DTO de respuesta final usando el patrón Builder
         return PabellonRespuestaDTO.builder()
                 .id(pabellon.getId())
                 .nombre(pabellon.getNombre())
@@ -186,9 +141,26 @@ public class PabellonService {
                 .referencia(pabellon.getReferencia())
                 .caracteristicas(pabellon.getCaracteristicas())
                 .estado(estadoDTO)
-                .tipoPabellon(tipoPabellonDTO)
+                .tipoPabellon(tipoDTO)
                 .sede(sedeDTO)
                 .imagenes(imagenesDTO)
                 .build();
+    }
+
+    public List<PabellonRespuestaDTO> obtenerPabellonesPorEstado(Integer estadoId) {
+        return pabellonRepository.findByEstado_Id(estadoId).stream()
+                .map(this::mapearAPabellonRespuestaDTO)
+                .collect(Collectors.toList());
+    }
+
+    private PabellonRespuestaDTO mapearAPabellonRespuestaDTO(Pabellon pabellon) {
+        // idéntico a convertirARespuestaDTO, puedes reutilizarlo o unificarlo si querés
+        return convertirARespuestaDTO(pabellon);
+    }
+
+    public List<PabellonRespuestaDTO> obtenerPabellonesPorEstadoYTipo(Integer estadoId, Integer tipoId) {
+        return pabellonRepository.findByEstado_IdAndTipo_Id(estadoId, tipoId).stream()
+                .map(this::convertirARespuestaDTO)
+                .collect(Collectors.toList());
     }
 }
