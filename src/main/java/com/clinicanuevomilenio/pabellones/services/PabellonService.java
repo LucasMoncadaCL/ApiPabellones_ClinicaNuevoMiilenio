@@ -99,6 +99,20 @@ public class PabellonService {
         pabellonImagenRepository.save(nuevaImagen);
     }
 
+    @Transactional(readOnly = true)
+    public List<PabellonRespuestaDTO> buscarDisponibles(LocalDate fecha, Integer estadoId, Integer tipoId) {
+        return pabellonRepository.findPabellonesDisponibles(fecha, estadoId, tipoId).stream()
+                .map(this::convertirARespuestaDTO) // Reutilizamos el método que ya tienes
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<PabellonRespuestaDTO> buscarPabellonesPorIds(List<Integer> ids) {
+        return pabellonRepository.findAllById(ids).stream()
+                .map(this::convertirARespuestaDTO)
+                .collect(Collectors.toList());
+    }
+
     private PabellonRespuestaDTO convertirARespuestaDTO(Pabellon pabellon) {
         List<PabellonImagenDTO> imagenesDTO = pabellon.getImagenes() != null ?
                 pabellon.getImagenes().stream().map(img -> {
